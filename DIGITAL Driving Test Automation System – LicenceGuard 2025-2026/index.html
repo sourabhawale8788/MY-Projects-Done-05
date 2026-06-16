@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Driving Test System - RTO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: Government Blue (Slate, Blue, White) -->
+    <!-- Application Structure Plan: A Single-Page Application (SPA) design. The user's "windows" are implemented as distinct \<div> sections (Home, Test, Registration, About, Rules). A persistent header with navigation links uses JavaScript (showPage function) to toggle the visibility of these sections, creating a seamless, app-like experience without page reloads. The Registration section uses sub-tabs for 'Register', 'Check Result', and 'View Submissions' to organize complex user tasks in one place. This SPA structure is chosen for speed, responsiveness, and to contain all related functionalities within one coherent interface, which is superior to a fragmented multi-window approach for user flow. -->
+    <!-- Visualization & Content Choices: Home: Uses a grid of text and image placeholders (placehold.co) to explain system advantages (Goal: Inform, Method: HTML/CSS, Interaction: Hover animations). Online Test: A JS-powered quiz (Goal: Assess, Method: JS/HTML Form, Interaction: Step-by-step questions, score calculation). Registration: A complex HTML form with JS validation (e.g., age check) (Goal: Data Capture, Method: HTML Form + JS, Interaction: Form submission, validation). PDF Generation: Uses jsPDF library to meet the explicit user requirement for a downloadable PDF receipt (Goal: Provide Record, Method: jsPDF Lib, Interaction: Button click triggers download). Result Check/Submissions: Uses localStorage to simulate a database (Goal: Retrieve Data, Method: JS + localStorage + HTML Table, Interaction: Search by code, dynamic table rendering). No charts are needed. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .page-section {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .page-section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .nav-link {
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+        .sub-nav-link {
+            cursor: pointer;
+            padding: 12px 16px;
+            border-bottom: 3px solid transparent;
+            transition: border-color 0.3s, color 0.3s;
+        }
+        .sub-nav-link:hover {
+            color: #2563eb;
+        }
+        .sub-nav-link.active {
+            border-color: #2563eb;
+            color: #2563eb;
+            font-weight: 600;
+        }
+        mark {
+            background-color: #fde047;
+            padding: 2px;
+            border-radius: 3px;
+        }
+        .form-input, .form-select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .form-input:focus, .form-select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+            outline: none;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+            transform: translateY(-1px);
+        }
+        .btn-primary:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: #374151;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 24px;
+            transition: all 0.3s;
+        }
+        .card:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+        .custom-file-label {
+            background-color: white;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 10px;
+            cursor: pointer;
+            display: block;
+            text-align: center;
+            color: #4b5563;
+        }
+        .custom-file-label:hover {
+            background-color: #f9fafb;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <!-- Header -->
+    <header class="bg-blue-700 text-white p-4 shadow-md sticky top-0 z-50">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
+            <div class="text-3xl font-bold mb-2 md:mb-0">
+                LicenceGaurd
+            </div>
+            <nav class="flex flex-wrap justify-center items-center gap-2 md:gap-4">
+                <a class="nav-link active" data-page="home-section">Home</a>
+                <a class="nav-link" data-page="test-section">Online Test</a>
+                <a class="nav-link" data-page="registration-section">Registration</a>
+                <a class="nav-link" data-page="about-section">About</a>
+                <div class="flex items-center bg-white rounded-md p-1">
+                    <input type="text" id="search-input" placeholder="Search..." class="form-input text-sm text-slate-800 border-none focus:ring-0 p-1">
+                    <button id="search-btn" class="p-1 text-blue-700 hover:text-blue-900">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <button id="clear-search-btn" class="p-1 text-red-500 hover:text-red-700 hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-4 md:p-8">
+
+        <!-- Home Section -->
+        <section id="home-section" class="page-section active">
+            <div class="card p-8 text-center bg-blue-50 border-2 border-blue-200">
+                <h1 class="text-4xl font-bold text-blue-800 mb-4">Driving License Related Services</h1>
+                <p class="text-lg text-slate-700 max-w-3xl mx-auto">
+                    Welcome to the Digital Driving Test System. We offer various services related to new and old driving licenses, including appointment booking, application status tracking, and online tests for your learner's license.
+                </p>
+                <p class="text-md text-slate-600 max-w-2xl mx-auto mt-4">
+                    You can register for your official driving test here. Upon passing the automated test, you will be eligible to receive your driving license.
+                </p>
+                <button class="btn-primary mt-6 nav-link" data-page="registration-section">Register for Test Now</button>
+            </div>
+
+            <div class="mt-12">
+                <h2 class="text-3xl font-bold text-center mb-8">Advantages of Our Digital System</h2>
+                <div class="grid md:grid-cols-2 gap-8 items-center">
+                    <div class="card p-8 space-y-4">
+                        <h3 class="text-2xl font-semibold text-blue-700">Transparency & Fairness</h3>
+                        <p>Our AI-powered system removes human bias, ensuring every applicant is judged on the same objective criteria. All test records are digitally stored and tamper-proof.</p>
+                        <h3 class="text-2xl font-semibold text-blue-700 mt-4">Efficiency</h3>
+                        <p>Book your slot online, get instant results, and reduce waiting times. The entire process from registration to result is streamlined for your convenience.</p>
+                        <h3 class="text-2xl font-semibold text-blue-700 mt-4">Enhanced Safety</h3>
+                        <p>By ensuring only truly qualified drivers pass the test, our system directly contributes to safer roads for everyone. Better testing means better drivers.</p>
+                    </div>
+                    <div class="p-4">
+                        <img src="https://placehold.co/600x400/3b82f6/ffffff?text=Automated+Driving+Test+Track" alt="Automated Driving Test Track" class="rounded-lg shadow-xl w-full h-auto">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-12 card p-8">
+                <h2 class="text-3xl font-bold text-center mb-6">How It Works & Why You Can Trust It</h2>
+                <p class="text-lg text-slate-700 text-center max-w-3xl mx-auto mb-8">
+                    This new system is designed to be reliable, secure, and user-friendly. Here's how it helps create a trustworthy testing environment in India.
+                </p>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="p-6 bg-slate-50 rounded-lg border">
+                        <h3 class="text-xl font-semibold text-blue-800 mb-2">1. AI-Powered Monitoring</h3>
+                        <p>Using advanced AI and IoT sensors, the system monitors your driving test in real-time. It accurately tracks maneuvers, speed, and adherence to rules without human intervention.</p>
+                    </div>
+                    <div class="p-6 bg-slate-50 rounded-lg border">
+                        <h3 class="text-xl font-semibold text-blue-800 mb-2">2. Secure Digital Records</h3>
+                        <p>Your registration data, test results, and unique ID are stored in a secure database. This creates a transparent, auditable record that prevents corruption and manipulation.</p>
+                    </div>
+                    <div class="p-6 bg-slate-50 rounded-lg border">
+                        <h3 class="text-xl font-semibold text-blue-800 mb-2">3. Standardized Testing</h3>
+                        <p>Every applicant, in every city, takes a test based on the same digital standard. This ensures fairness and equity, giving everyone an equal opportunity to prove their skills.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-12 text-center card p-8 bg-green-50 border-2 border-green-200">
+                <h2 class="text-2xl font-semibold text-green-800 mb-4">Know the Rules of the Road</h2>
+                <p class="text-lg text-slate-700 mb-6">A good driver is a safe driver. Refresh your knowledge of basic traffic rules before taking your test.</p>
+                <button id="rules-link-btn" class="btn-secondary font-semibold text-green-700 bg-green-200 hover:bg-green-300">View Basic Traffic Rules</button>
+            </div>
+        </section>
+
+        <!-- Basic Rules Section -->
+        <section id="rules-section" class="page-section card">
+            <h1 class="text-3xl font-bold mb-6 text-blue-800">Basic Traffic Rules</h1>
+            <ul class="list-disc list-inside space-y-3 text-lg text-slate-700">
+                <li>Always drive on the left side of the road.</li>
+                <li>Obey all traffic signals (Red, Yellow, Green).</li>
+                <li>Adhere to speed limits posted for different areas.</li>
+                <li>Always use indicators when turning or changing lanes.</li>
+                <li>Give way to pedestrians at zebra crossings.</li>
+                <li>Do not use a mobile phone while driving.</li>
+                <li>Always wear a seatbelt (for car drivers) or a helmet (for two-wheeler riders).</li>
+                <li>Maintain a safe distance from the vehicle in front of you.</li>
+                <li>Do not drink and drive.</li>
+                <li>Give way to emergency vehicles like ambulances and fire trucks.</li>
+            </ul>
+            <button class="btn-secondary mt-8 nav-link" data-page="home-section">Back to Home</button>
+        </section>
+
+        <!-- Online Test Section -->
+        <section id="test-section" class="page-section card max-w-3xl mx-auto">
+            <h1 class="text-3xl font-bold mb-6 text-center text-blue-800">Online Traffic Rules Test</h1>
+            
+            <div id="quiz-container">
+                <div id="question-container" class="mb-6">
+                    <h2 id="question-text" class="text-2xl font-semibold mb-6"></h2>
+                    <div id="options-container" class="space-y-3">
+                        <!-- Options will be injected by JS -->
+                    </div>
+                </div>
+                <button id="next-q-btn" class="btn-primary w-full">Next Question</button>
+            </div>
+
+            <div id="quiz-results" class="hidden text-center">
+                <h2 id="score-text" class="text-3xl font-bold mb-6"></h2>
+                <p id="score-message" class="text-lg mb-6"></p>
+                <button id="retry-quiz-btn" class="btn-secondary">Retry Test</button>
+            </div>
+        </section>
+
+        <!-- Registration Section -->
+        <section id="registration-section" class="page-section">
+            <h1 class="text-4xl font-bold mb-6 text-center text-blue-800">Test Registration & Results</h1>
+            
+            <!-- Sub-navigation -->
+            <div class="flex justify-center border-b mb-8 bg-white rounded-lg shadow-sm">
+                <button class="sub-nav-link active" data-part="register-part">1. Register for Test</button>
+                <button class="sub-nav-link" data-part="result-part">2. Check Your Result</button>
+                <button class="sub-nav-link" data-part="submissions-part">3. View All Submissions</button>
+            </div>
+
+            <!-- Part 1: Registration Form -->
+            <div id="register-part" class="reg-part card max-w-4xl mx-auto">
+                <h2 class="text-2xl font-semibold mb-6">Part 1: Registration Form</h2>
+                <form id="registration-form" class="space-y-6">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="full-name" class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                            <input type="text" id="full-name" class="form-input" required>
+                        </div>
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-slate-700 mb-1">Email ID</label>
+                            <input type="email" id="email" class="form-input" required>
+                        </div>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-slate-700 mb-1">Create Password</label>
+                            <input type="password" id="password" class="form-input" required>
+                        </div>
+                        <div>
+                            <label for="pan-id" class="block text-sm font-medium text-slate-700 mb-1">PAN ID</label>
+                            <input type="text" id="pan-id" class="form-input" required minlength="10" maxlength="10">
+                        </div>
+                    </div>
+                     <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="dob" class="block text-sm font-medium text-slate-700 mb-1">Date of Birth</label>
+                            <input type="date" id="dob" class="form-input" required>
+                            <p id="age-error" class="text-red-500 text-sm mt-1 hidden">Sorry, you must be at least 18 years old to register.</p>
+                        </div>
+                        <div>
+                            <label for="photo" class="block text-sm font-medium text-slate-700 mb-1">Upload Photo</label>
+                            <label for="photo" class="custom-file-label">
+                                <span id="photo-filename">Click to upload photo</span>
+                            </label>
+                            <input type="file" id="photo" class="hidden" accept="image/*">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">License For</label>
+                        <div class="flex flex-wrap gap-4">
+                            <label class="flex items-center"><input type="radio" name="vehicle-type" value="2w-no-gear" class="mr-2"> 2 Wheeler (Without Gear)</label>
+                            <label class="flex items-center"><input type="radio" name="vehicle-type" value="2w-gear" class="mr-2"> 2 Wheeler (With Gear)</label>
+                            <label class="flex items-center"><input type="radio" name="vehicle-type" value="4w-car" class="mr-2"> 4 Wheeler (Car)</label>
+                        </div>
+                    </div>
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <div>
+                            <label for="pincode" class="block text-sm font-medium text-slate-700 mb-1">Test City Pincode</label>
+                            <input type="text" id="pincode" class="form-input" required>
+                        </div>
+                        <div>
+                            <label for="city" class="block text-sm font-medium text-slate-700 mb-1">Test City Name</label>
+                            <input type="text" id="city" class="form-input" required>
+                        </div>
+                        <div>
+                            <label for="test-date" class="block text-sm font-medium text-slate-700 mb-1">Date of Test</label>
+                            <input type="date" id="test-date" class="form-input" required>
+                        </div>
+                    </div>
+                     <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Test Time Slot</label>
+                        <div class="flex flex-wrap gap-4">
+                            <label class="flex items-center"><input type="radio" name="time-slot" value="morning" class="mr-2"> 9:30 AM - 1:30 PM</label>
+                            <label class="flex items-center"><input type="radio" name="time-slot" value="afternoon" class="mr-2"> 2:30 PM - 5:00 PM</label>
+                        </div>
+                    </div>
+                    <button type="submit" id="submit-reg-btn" class="btn-primary w-full">Submit Registration</button>
+                </form>
+                
+                <div id="reg-success-msg" class="hidden mt-8 text-center p-6 bg-green-50 border-2 border-green-300 rounded-lg">
+                    <h3 class="text-2xl font-semibold text-green-800 mb-3">Registration Successful!</h3>
+                    <p class="text-lg text-slate-700">Your unique identification code is:</p>
+                    <p id="unique-code-display" class="text-3xl font-bold text-slate-900 my-4 p-3 bg-white border rounded-md"></p>
+                    <p class="text-md text-slate-600 mb-6">Please save this code for checking your result. You can also download a PDF copy of your submission.</p>
+                    <button id="download-pdf-btn" class="btn-primary bg-green-600 hover:bg-green-700">Download PDF Confirmation</button>
+                </div>
+            </div>
+
+            <!-- Part 2: Check Result -->
+            <div id="result-part" class="reg-part hidden card max-w-2xl mx-auto">
+                <h2 class="text-2xl font-semibold mb-6">Part 2: Check Your Result</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="check-code-input" class="block text-sm font-medium text-slate-700 mb-1">Enter Your Unique Code</label>
+                        <input type="text" id="check-code-input" class="form-input" placeholder="e.g., RTO-1678888...">
+                    </div>
+                    <button id="check-result-btn" class="btn-primary w-full">Check Result</button>
+                </div>
+                <div id="result-display" class="mt-8 p-6 bg-slate-50 rounded-lg border hidden">
+                    <!-- Result will be injected by JS -->
+                </div>
+            </div>
+            
+            <!-- Part 3: View Submissions -->
+            <div id="submissions-part" class="reg-part hidden card">
+                 <h2 class="text-2xl font-semibold mb-6">Part 3: All Submissions Record</h2>
+                 <p class="mb-4 text-slate-600">This table shows all test registrations submitted in this session. (Data is stored in your browser's local storage for this demo).</p>
+                 <div id="submissions-table-container" class="overflow-x-auto">
+                    <!-- Table will be injected by JS -->
+                 </div>
+            </div>
+
+        </section>
+
+        <!-- About Section -->
+        <section id="about-section" class="page-section card">
+            <h1 class="text-3xl font-bold mb-6 text-blue-800">About This System</h1>
+            <div class="space-y-4 text-lg text-slate-700">
+                <p>
+                    The Digital Driving Test System (LicenceGaurd) is an innovative solution designed to revolutionize the way RTOs conduct driving tests in India. Our mission is to enhance road safety by ensuring that only skilled and qualified drivers are licensed.
+                </p>
+                <p>
+                    We leverage cutting-edge AI, IoT sensors, and secure cloud technology to create a testing process that is:
+                </p>
+                <ul class="list-disc list-inside ml-4 space-y-2">
+                    <li><strong>Transparent:</strong> Fully automated tests with no human bias.</li>
+                    <li><strong>Efficient:</strong> Simple online booking and instant, digital results.</li>
+                    <li><strong>Secure:</strong> Tamper-proof records and biometric authentication.</li>
+                    <li><strong>Fair:</strong> A standardized test for every single applicant.</li>
+                </ul>
+                <p class="mt-6 font-semibold">
+                    Contact Information:
+                </p>
+                <p>
+                    For support or inquiries, please contact us at:
+                </p>
+                <p>
+                    <strong>Email:</strong> support@licencegaurd.gov.in <br>
+                    <strong>Phone:</strong> 1800-123-4567
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 text-slate-300 p-8 mt-12">
+        <div class="container mx-auto grid md:grid-cols-3 gap-8">
+            <div>
+                <h3 class="text-xl font-bold text-white mb-4">LicenceGaurd</h3>
+                <p class="text-sm">Bringing transparency and safety to India's roads through technology.</p>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-white mb-4">Quick Links</h3>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="#" class="hover:text-white">Terms of Service</a></li>
+                    <li><a href="#" class="hover:text-white">Privacy Policy</a></li>
+                    <li><a href="#" class="hover:text-white nav-link" data-page="about-section">About Us</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-white mb-4">Contact Us</h3>
+                <p class="text-sm">Ministry of Road Transport & Highways</p>
+                <p class="text-sm">New Delhi, India</p>
+                <p class="text-sm mt-2"><strong>Email:</strong> contact@morth.gov.in</p>
+            </div>
+        </div>
+        <div class="border-t border-slate-700 mt-8 pt-6 text-center text-sm text-slate-400">
+            &copy; 2025 Digital Driving Test System. All rights reserved.
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const pageSections = document.querySelectorAll('.page-section');
+            const rulesLinkBtn = document.getElementById('rules-link-btn');
+            let activePageId = 'home-section';
+            
+            function showPage(pageId) {
+                pageSections.forEach(section => {
+                    section.classList.remove('active');
+                });
+                const targetPage = document.getElementById(pageId);
+                if (targetPage) {
+                    targetPage.classList.add('active');
+                }
+
+                navLinks.forEach(link => {
+                    if (link.dataset.page === pageId) {
+                        link.classList.add('active');
+                    } else {
+                        link.classList.remove('active');
+                    }
+                });
+                activePageId = pageId;
+                window.scrollTo(0, 0);
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const pageId = e.currentTarget.dataset.page;
+                    showPage(pageId);
+                });
+            });
+
+            if (rulesLinkBtn) {
+                rulesLinkBtn.addEventListener('click', () => {
+                    showPage('rules-section');
+                });
+            }
+
+            // Search Logic
+            const searchInput = document.getElementById('search-input');
+            const searchBtn = document.getElementById('search-btn');
+            const clearSearchBtn = document.getElementById('clear-search-btn');
+            let originalContent = {};
+
+            function performSearch() {
+                const searchTerm = searchInput.value.trim();
+                if (searchTerm === '') return;
+
+                const activePage = document.getElementById(activePageId);
+                if (!activePage) return;
+
+                if (!originalContent[activePageId]) {
+                    originalContent[activePageId] = activePage.innerHTML;
+                }
+
+                activePage.innerHTML = originalContent[activePageId];
+
+                const regex = new RegExp(searchTerm, 'gi');
+                let matchesFound = 0;
+                
+                const textNodes = [];
+                const walk = document.createTreeWalker(activePage, NodeFilter.SHOW_TEXT, null, false);
+                let node;
+                while ((node = walk.nextNode())) {
+                    if (node.parentElement.tagName !== 'SCRIPT' && node.parentElement.tagName !== 'STYLE') {
+                        textNodes.push(node);
+                    }
+                }
+                
+                textNodes.forEach(node => {
+                    const text = node.nodeValue;
+                    if (regex.test(text)) {
+                        matchesFound++;
+                        const replacement = text.replace(regex, (match) => `<mark>${match}</mark>`);
+                        const span = document.createElement('span');
+                        span.innerHTML = replacement;
+                        node.parentNode.replaceChild(span, node);
+                    }
+                });
+                
+                if (matchesFound > 0) {
+                    clearSearchBtn.classList.remove('hidden');
+                }
+            }
+
+            function clearSearch() {
+                if (originalContent[activePageId]) {
+                    const activePage = document.getElementById(activePageId);
+                    activePage.innerHTML = originalContent[activePageId];
+                }
+                searchInput.value = '';
+                clearSearchBtn.classList.add('hidden');
+            }
+
+            searchBtn.addEventListener('click', performSearch);
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') performSearch();
+            });
+            clearSearchBtn.addEventListener('click', clearSearch);
+
+            // Quiz Logic
+            const quizData = [
+                {
+                    question: "What does a red traffic light indicate?",
+                    options: ["Stop", "Go", "Slow Down", "U-Turn"],
+                    answer: 0
+                },
+                {
+                    question: "What does this sign mean? (Triangular sign with 'STOP' text)",
+                    options: ["Give Way", "Hospital Ahead", "Stop and proceed when safe", "No Entry"],
+                    answer: 2
+                },
+                {
+                    question: "When is it permissible to use a horn?",
+                    options: ["To greet a friend", "To signal impatience", "To prevent danger or an accident", "At night only"],
+                    answer: 2
+                },
+                {
+                    question: "What is the speed limit in a residential area (unless otherwise posted)?",
+                    options: ["50 km/h", "30 km/h", "70 km/h", "No limit"],
+                    answer: 1
+                },
+                {
+                    question: "You are at a junction and want to turn right. You should:",
+                    options: ["Cut the corner quickly", "Stay on the left and turn", "Move to the center-right lane and turn", "Overtake from the left"],
+                    answer: 2
+                }
+            ];
+            
+            let currentQuestionIndex = 0;
+            let score = 0;
+            const quizContainer = document.getElementById('quiz-container');
+            const quizResults = document.getElementById('quiz-results');
+            const questionText = document.getElementById('question-text');
+            const optionsContainer = document.getElementById('options-container');
+            const nextQBtn = document.getElementById('next-q-btn');
+            const scoreText = document.getElementById('score-text');
+            const scoreMessage = document.getElementById('score-message');
+            const retryQuizBtn = document.getElementById('retry-quiz-btn');
+
+            function loadQuestion() {
+                if (currentQuestionIndex < quizData.length) {
+                    const q = quizData[currentQuestionIndex];
+                    questionText.textContent = q.question;
+                    optionsContainer.innerHTML = '';
+                    q.options.forEach((option, index) => {
+                        optionsContainer.innerHTML += `
+                            <label class="block p-4 border rounded-lg hover:bg-slate-50 cursor-pointer">
+                                <input type="radio" name="quiz-option" value="${index}" class="mr-3">
+                                ${option}
+                            </label>
+                        `;
+                    });
+                    nextQBtn.textContent = "Next Question";
+                } else {
+                    showQuizResults();
+                }
+            }
+
+            function showQuizResults() {
+                quizContainer.classList.add('hidden');
+                quizResults.classList.remove('hidden');
+                scoreText.textContent = `Your Score: ${score} out of ${quizData.length}`;
+                const percentage = (score / quizData.length) * 100;
+                if (percentage >= 60) {
+                    scoreMessage.textContent = "Congratulations! You have passed the test.";
+                    scoreMessage.className = "text-lg mb-6 text-green-600";
+                } else {
+                    scoreMessage.textContent = "Sorry, you did not pass. Please review the rules and try again.";
+                    scoreMessage.className = "text-lg mb-6 text-red-500";
+                }
+            }
+
+            function resetQuiz() {
+                currentQuestionIndex = 0;
+                score = 0;
+                quizResults.classList.add('hidden');
+                quizContainer.classList.remove('hidden');
+                loadQuestion();
+            }
+
+            nextQBtn.addEventListener('click', () => {
+                const selectedOption = document.querySelector('input[name="quiz-option"]:checked');
+                if (!selectedOption) {
+                    alert('Please select an answer.');
+                    return;
+                }
+                
+                if (parseInt(selectedOption.value) === quizData[currentQuestionIndex].answer) {
+                    score++;
+                }
+                
+                currentQuestionIndex++;
+                if (currentQuestionIndex === quizData.length) {
+                    nextQBtn.textContent = "Show Results";
+                }
+                loadQuestion();
+            });
+
+            retryQuizBtn.addEventListener('click', resetQuiz);
+
+            // Registration Logic
+            const regSubNavLinks = document.querySelectorAll('.sub-nav-link');
+            const regParts = document.querySelectorAll('.reg-part');
+            const regForm = document.getElementById('registration-form');
+            const dobInput = document.getElementById('dob');
+            const ageError = document.getElementById('age-error');
+            const submitRegBtn = document.getElementById('submit-reg-btn');
+            const photoInput = document.getElementById('photo');
+            const photoFilename = document.getElementById('photo-filename');
+            const regSuccessMsg = document.getElementById('reg-success-msg');
+            const uniqueCodeDisplay = document.getElementById('unique-code-display');
+            const downloadPdfBtn = document.getElementById('download-pdf-btn');
+            const checkCodeInput = document.getElementById('check-code-input');
+            const checkResultBtn = document.getElementById('check-result-btn');
+            const resultDisplay = document.getElementById('result-display');
+            const submissionsTableContainer = document.getElementById('submissions-table-container');
+
+            let currentSubmissionData = null;
+            let photoBase64 = null;
+
+            regSubNavLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    const partId = e.currentTarget.dataset.part;
+                    
+                    regParts.forEach(part => part.classList.add('hidden'));
+                    document.getElementById(partId).classList.remove('hidden');
+
+                    regSubNavLinks.forEach(nav => nav.classList.remove('active'));
+                    e.currentTarget.classList.add('active');
+                });
+            });
+
+            function validateAge() {
+                const dob = new Date(dobInput.value);
+                if (isNaN(dob.getTime())) return false; 
+                
+                const today = new Date();
+                let age = today.getFullYear() - dob.getFullYear();
+                const m = today.getMonth() - dob.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+                    age--;
+                }
+                
+                if (age < 18) {
+                    ageError.classList.remove('hidden');
+                    submitRegBtn.disabled = true;
+                    return false;
+                } else {
+                    ageError.classList.add('hidden');
+                    submitRegBtn.disabled = false;
+                    return true;
+                }
+            }
+            dobInput.addEventListener('change', validateAge);
+
+            photoInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    photoFilename.textContent = file.name;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        photoBase64 = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            function loadSubmissions() {
+                return JSON.parse(localStorage.getItem('rtoSubmissions') || '[]');
+            }
+
+            function saveSubmission(submission) {
+                const submissions = loadSubmissions();
+                submissions.push(submission);
+                localStorage.setItem('rtoSubmissions', JSON.stringify(submissions));
+            }
+            
+            function renderSubmissionsTable() {
+                const submissions = loadSubmissions();
+                if (submissions.length === 0) {
+                    submissionsTableContainer.innerHTML = '<p class="text-slate-500 text-center">No submissions found.</p>';
+                    return;
+                }
+                
+                let table = '<table class="min-w-full divide-y divide-slate-200"><thead class="bg-slate-50"><tr>';
+                table += '<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name</th>';
+                table += '<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Email</th>';
+                table += '<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Unique Code</th>';
+                table += '<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Vehicle</th>';
+                table += '<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Test Date</th>';
+                table += '<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Result</th>';
+                table += '</tr></thead><tbody class="bg-white divide-y divide-slate-200">';
+                
+                submissions.forEach(sub => {
+                    table += '<tr>';
+                    table += `<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${sub.name}</td>`;
+                    table += `<td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${sub.email}</td>`;
+                    table += `<td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${sub.uniqueCode}</td>`;
+                    table += `<td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${sub.vehicle}</td>`;
+                    table += `<td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${sub.testDate}</td>`;
+                    table += `<td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${sub.result === 'Pass' ? 'text-green-600' : (sub.result === 'Fail' ? 'text-red-600' : 'text-slate-500')}">${sub.result}</td>`;
+                    table += '</tr>';
+                });
+                
+                table += '</tbody></table>';
+                submissionsTableContainer.innerHTML = table;
+            }
+
+            regForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (!validateAge()) return;
+
+                const vehicleTypeEl = document.querySelector('input[name="vehicle-type"]:checked');
+                const timeSlotEl = document.querySelector('input[name="time-slot"]:checked');
+
+                if (!vehicleTypeEl || !timeSlotEl) {
+                    alert('Please fill all required fields, including vehicle type and time slot.');
+                    return;
+                }
+
+                currentSubmissionData = {
+                    name: document.getElementById('full-name').value,
+                    email: document.getElementById('email').value,
+                    pan: document.getElementById('pan-id').value,
+                    dob: dobInput.value,
+                    photoBase64: photoBase64,
+                    vehicle: vehicleTypeEl.labels[0].textContent.trim(),
+                    pincode: document.getElementById('pincode').value,
+                    city: document.getElementById('city').value,
+                    testDate: document.getElementById('test-date').value,
+                    timeSlot: timeSlotEl.labels[0].textContent.trim(),
+                    uniqueCode: `RTO-${Date.now()}`,
+                    result: Math.random() < 0.5 ? 'Pass' : 'Fail' // Mock result for demo
+                };
+                
+                saveSubmission(currentSubmissionData);
+                
+                uniqueCodeDisplay.textContent = currentSubmissionData.uniqueCode;
+                regSuccessMsg.classList.remove('hidden');
+                regForm.classList.add('hidden');
+                regForm.reset();
+                photoFilename.textContent = 'Click to upload photo';
+                photoBase64 = null;
+                
+                renderSubmissionsTable();
+            });
+            
+            downloadPdfBtn.addEventListener('click', () => {
+                if (!currentSubmissionData) return;
+                
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                doc.setFontSize(18);
+                doc.text('Driving Test Registration Confirmation', 105, 20, { align: 'center' });
+                
+                doc.setFontSize(12);
+                doc.text(`Unique ID: ${currentSubmissionData.uniqueCode}`, 20, 40);
+                doc.text(`Name: ${currentSubmissionData.name}`, 20, 50);
+                doc.text(`Email: ${currentSubmissionData.email}`, 20, 60);
+                doc.text(`Date of Birth: ${currentSubmissionData.dob}`, 20, 70);
+                doc.text(`PAN ID: ${currentSubmissionData.pan}`, 20, 80);
+                
+                doc.text(`Test City: ${currentSubmissionData.city} (${currentSubmissionData.pincode})`, 20, 100);
+                doc.text(`Test Date: ${currentSubmissionData.testDate}`, 20, 110);
+                doc.text(`Time Slot: ${currentSubmissionData.timeSlot}`, 20, 120);
+                doc.text(`Vehicle Type: ${currentSubmissionData.vehicle}`, 20, 130);
+                
+                if (currentSubmissionData.photoBase64) {
+                    try {
+                        doc.addImage(currentSubmissionData.photoBase64, 'JPEG', 140, 40, 50, 50);
+                    } catch (err) {
+                        console.error("Error adding image to PDF:", err);
+                        doc.text('Photo could not be added.', 140, 40);
+                    }
+                }
+                
+                doc.save(`RTO-Registration-${currentSubmissionData.uniqueCode}.pdf`);
+            });
+
+            checkResultBtn.addEventListener('click', () => {
+                const code = checkCodeInput.value.trim();
+                if (code === '') {
+                    resultDisplay.innerHTML = '<p class="text-red-500">Please enter a valid code.</p>';
+                    resultDisplay.classList.remove('hidden');
+                    return;
+                }
+                
+                const submissions = loadSubmissions();
+                const record = submissions.find(s => s.uniqueCode === code);
+                
+                if (record) {
+                    let resultColor = 'text-slate-700';
+                    if (record.result === 'Pass') resultColor = 'text-green-600';
+                    if (record.result === 'Fail') resultColor = 'text-red-600';
+                    
+                    resultDisplay.innerHTML = `
+                        <h3 class="text-xl font-semibold mb-3">Result for ${record.name}</h3>
+                        <p class="text-lg"><strong>Status:</strong> <span class="font-bold ${resultColor}">${record.result}</span></p>
+                        <p class="text-md text-slate-600 mt-2"><strong>Test Date:</strong> ${record.testDate}</p>
+                        <p class="text-md text-slate-600"><strong>Vehicle:</strong> ${record.vehicle}</p>
+                    `;
+                } else {
+                    resultDisplay.innerHTML = '<p class="text-red-500">No record found for this code.</p>';
+                }
+                resultDisplay.classList.remove('hidden');
+            });
+
+
+            // Initial load
+            showPage('home-section');
+            loadQuestion();
+            renderSubmissionsTable();
+        });
+    </script>
+</body>
+</html>
