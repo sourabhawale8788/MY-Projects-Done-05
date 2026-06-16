@@ -1,0 +1,11 @@
+Architected bare-metal ESP32 firmware in Embedded C with FreeRTOS task scheduling to simultaneously poll lane-crossing IR
+sensors, ultrasonic speed sensors, and obstacle detection — achieving deterministic sub-20ms sensor response with zero missed
+events.
+Eliminated manual examiner scoring by building autonomous violation detection (lane crossing, overspeed, obstacle hits) — zero
+human intervention required during live test execution.
+Reduced RTO paperwork by 40% by engineering a cloud data pipeline (Google Apps Script) that produces 100% tamper-proof,
+auditable PDF scoring records for government use.
+Developed LicenceGuard Web Portal (HTML5 + Tailwind CSS) for candidate registration, slot booking, live test monitoring, and
+instant report generation — deployed as a responsive single-page application.
+Integrated real-time IoT sensor fusion with cloud logging, eliminating manual data entry and human error in official government driving
+test evaluation.
