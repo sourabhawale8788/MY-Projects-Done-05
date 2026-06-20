@@ -6,3 +6,5 @@ path re-routing with zero human input.
 deterministic response times in a hard real-time embedded system.
 • Tuned interrupt-driven GPIO handlers for collision avoidance, verified with oscilloscope and serial monitor to ensure consistent
 sub-30ms latency under load.
+
+Raspberry Pi | ESP32-CAM | Python | Embedded C | OpenCV | UART 
